@@ -161,6 +161,34 @@ const App = () => {
     setTotalValue(total);
   };
 
+  const refreshData = async () => {
+    setIsLoading(true);
+    setLastUpdate(new Date());
+    setNextUpdate(new Date(Date.now() + 7200000));
+
+    if (portfolio.length > 0) {
+      try {
+        const updatedPortfolio = await Promise.all(
+          portfolio.map(async (stock) => {
+            try {
+              const newPrice = await fetchStockPrice(stock.symbol);
+              return { ...stock, price: newPrice };
+            } catch (error) {
+              console.error(`Greška pri ažuriranju cijene za ${stock.symbol}:`, error);
+              return stock; // Zadržavamo staru cijenu ako dođe do greške
+            }
+          })
+        );
+        setPortfolio(updatedPortfolio);
+        calculateTotalValue(updatedPortfolio);
+      } catch (error) {
+        console.error('Greška pri ažuriranju cijena:', error);
+      }
+    }
+    
+    setIsLoading(false);
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -171,6 +199,7 @@ const App = () => {
       <div className={styles.controls}>
         <AddNewStock onAddNewStock={addNewStock} />
         <StockSelector onAddStock={addStockToPortfolio} availableStocks={availableStocks} />
+        <button onClick={refreshData}>Ručno osvježi podatke</button>
       </div>
 
       <div className={styles.dashboard}>

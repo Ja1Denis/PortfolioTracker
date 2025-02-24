@@ -49,3 +49,18 @@
 .chartSection {
   min-width: 0; /* Važno za responzivnost grafikona */
 }
+
+button {
+  background-color: #0088FE;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 15px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
