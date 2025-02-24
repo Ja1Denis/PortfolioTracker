@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { VictoryPie, VictoryTooltip } from 'victory';
 import styles from './PortfolioChart.module.css';
 
 const COLORS = [
@@ -8,35 +8,24 @@ const COLORS = [
 ];
 
 const PortfolioChart = ({ portfolio, isLoading }) => {
-  const data = portfolio.map(stock => ({
-    name: `${stock.name} (${stock.symbol})`,
-    value: stock.price * stock.quantity
-  }));
+  const data = portfolio.map(stock => {
+    const value = stock.price * stock.quantity;
+    console.log('Stock data:', {
+      symbol: stock.symbol,
+      name: stock.name,
+      price: stock.price,
+      quantity: stock.quantity,
+      value: value
+    });
+    return value ? {
+      x: stock.symbol,
+      y: value,
+      label: stock.symbol,
+      tooltip: `${stock.name}\n${value.toFixed(2)}€`
+    } : null;
+  }).filter(Boolean);
 
-  const renderCustomizedLabel = ({
-    cx,
-    cy,
-    midAngle,
-    innerRadius,
-    outerRadius,
-    percent
-  }) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
-    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
-
-    return percent > 0.05 ? (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor="middle"
-        dominantBaseline="central"
-      >
-        {`${(percent * 100).toFixed(1)}%`}
-      </text>
-    ) : null;
-  };
+  console.log('Final chart data:', data);
 
   return (
     <div className={styles.container}>
@@ -46,31 +35,23 @@ const PortfolioChart = ({ portfolio, isLoading }) => {
       </h2>
       <div className={styles.chartContainer}>
         {portfolio.length > 0 ? (
-          <ResponsiveContainer width="100%" height={400}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={renderCustomizedLabel}
-                outerRadius={160}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {data.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={COLORS[index % COLORS.length]} 
-                  />
-                ))}
-              </Pie>
-              <Tooltip 
-                formatter={(value) => `${value.toFixed(2)} €`}
+          <VictoryPie
+            data={data}
+            colorScale={COLORS}
+            labelComponent={
+              <VictoryTooltip
+                text={({ datum }) => datum.label || datum.x}
+                style={{ fontSize: 12 }}
+                flyoutStyle={{ stroke: "none" }}
               />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+            }
+            style={{
+              labels: { fill: "white", fontSize: 12 },
+              data: { stroke: "white", strokeWidth: 1 }
+            }}
+            padding={{ top: 20, bottom: 20, left: 50, right: 50 }}
+            height={400}
+          />
         ) : (
           <p className={styles.emptyMessage}>
             Dodajte dionice u portfelj za prikaz grafikona

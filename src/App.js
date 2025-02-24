@@ -7,7 +7,10 @@ import { stockService } from './services/stockService';
 import styles from './App.module.css';
 
 const App = () => {
-  const [portfolio, setPortfolio] = useState([]);
+  const [portfolio, setPortfolio] = useState(() => {
+    const savedPortfolio = localStorage.getItem('portfolio');
+    return savedPortfolio ? JSON.parse(savedPortfolio) : [];
+  });
   const [totalValue, setTotalValue] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [availableStocks, setAvailableStocks] = useState({
@@ -79,6 +82,10 @@ const App = () => {
       clearInterval(interval);
     };
   }, []); // Prazan dependency array - interval se postavlja samo jednom
+
+  useEffect(() => {
+    localStorage.setItem('portfolio', JSON.stringify(portfolio));
+  }, [portfolio]);
 
   const addNewStock = (newStock) => {
     setAvailableStocks(prev => ({
@@ -178,10 +185,7 @@ const App = () => {
           />
         </div>
         <div className={styles.chartSection}>
-          <PortfolioChart 
-            portfolio={portfolio}
-            isLoading={isLoading}
-          />
+          <PortfolioChart portfolio={portfolio} isLoading={isLoading} />
         </div>
       </div>
     </div>
