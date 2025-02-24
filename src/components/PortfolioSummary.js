@@ -1,13 +1,14 @@
 import React from 'react';
 import styles from './PortfolioSummary.module.css';
 
-const PortfolioSummary = ({ portfolio, totalValue, onRemoveStock }) => {
+const PortfolioSummary = ({ portfolio, totalValue, onRemoveStock, isLoading }) => {
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>
         Ukupna vrijednost portfelja: <span className={totalValue >= 0 ? styles.positive : styles.negative}>
           {totalValue.toFixed(2)} €
         </span>
+        {isLoading && <span className={styles.loadingIndicator}>Osvježavanje...</span>}
       </h2>
       <table className={styles.table}>
         <thead>

@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StockSelector from './components/StockSelector';
 import PortfolioSummary from './components/PortfolioSummary';
 import AddNewStock from './components/AddNewStock';
 import PortfolioChart from './components/PortfolioChart';
-import axios from 'axios';
+import { stockService } from './services/stockService';
 import styles from './App.module.css';
 
 const App = () => {
   const [portfolio, setPortfolio] = useState([]);
   const [totalValue, setTotalValue] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [availableStocks, setAvailableStocks] = useState({
     "ADPL": "AD PLASTIK d.d.",
     "ARNT": "Arena Hospitality Group d.d.",
@@ -18,36 +19,116 @@ const App = () => {
     "RIVP": "Valamar Riviera d.d.",
   });
 
-  const [mockPrices, setMockPrices] = useState({
+  // Backup mock cijene za slučaj da API ne radi
+  const mockPrices = {
     "ADPL": 185.50,
     "ARNT": 280.00,
     "ATGR": 760.00,
     "HT": 180.00,
     "PODR": 580.00,
     "RIVP": 485.00
-  });
+  };
+
+  // Automatsko osvježavanje cijena svakih 5 minuta
+  useEffect(() => {
+    let isMounted = true;
+    
+    const updatePrices = async () => {
+      if (portfolio.length > 0) {
+        if (isMounted) setIsLoading(true);
+        try {
+          const updatedPortfolio = await Promise.all(
+            portfolio.map(async (stock) => {
+              try {
+                const newPrice = await fetchStockPrice(stock.symbol);
+                return { ...stock, price: newPrice };
+              } catch (error) {
+                console.error(`Greška pri ažuriranju cijene za ${stock.symbol}:`, error);
+                return stock; // Zadržavamo staru cijenu ako dođe do greške
+              }
+            })
+          );
+          if (isMounted) {
+            setPortfolio(updatedPortfolio);
+            calculateTotalValue(updatedPortfolio);
+          }
+        } catch (error) {
+          console.error('Greška pri ažuriranju cijena:', error);
+        } finally {
+          if (isMounted) setIsLoading(false);
+        }
+      }
+    };
+
+    // Prvo ažuriranje
+    updatePrices();
+
+    // Postavljanje intervala za ažuriranje
+    const interval = setInterval(updatePrices, 300000); // 5 minuta
+    
+    // Čišćenje
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []); // Prazan dependency array - interval se postavlja samo jednom
 
   const addNewStock = (newStock) => {
     setAvailableStocks(prev => ({
       ...prev,
       [newStock.symbol]: newStock.name
     }));
-    setMockPrices(prev => ({
-      ...prev,
-      [newStock.symbol]: newStock.price
-    }));
+  };
+
+  const fetchStockPrice = async (symbol) => {
+    try {
+      return await stockService.getStockPrice(symbol);
+    } catch (error) {
+      console.error(`Nije moguće dohvatiti cijenu za ${symbol}:`, error);
+      throw error;
+    }
   };
 
   const addStockToPortfolio = async (stock) => {
+    if (!stock.symbol || !stock.quantity) return;
+
+    setIsLoading(true);
     try {
       const price = await fetchStockPrice(stock.symbol);
-      const stockName = getStockName(stock.symbol);
-      const newStock = { ...stock, price, name: stockName };
-      setPortfolio(prev => [...prev, newStock]);
-      calculateTotalValue([...portfolio, newStock]);
+      const newStock = {
+        symbol: stock.symbol,
+        quantity: parseFloat(stock.quantity),
+        price,
+        value: price * parseFloat(stock.quantity)
+      };
+
+      setPortfolio(prevPortfolio => {
+        const existingStockIndex = prevPortfolio.findIndex(s => s.symbol === stock.symbol);
+        if (existingStockIndex >= 0) {
+          // Ažuriramo postojeću dionicu
+          const updatedPortfolio = [...prevPortfolio];
+          const existingStock = updatedPortfolio[existingStockIndex];
+          updatedPortfolio[existingStockIndex] = {
+            ...existingStock,
+            quantity: existingStock.quantity + parseFloat(stock.quantity),
+            value: (existingStock.quantity + parseFloat(stock.quantity)) * price
+          };
+          return updatedPortfolio;
+        } else {
+          // Dodajemo novu dionicu
+          return [...prevPortfolio, newStock];
+        }
+      });
+
+      // Ažuriramo ukupnu vrijednost
+      setPortfolio(prevPortfolio => {
+        calculateTotalValue(prevPortfolio);
+        return prevPortfolio;
+      });
     } catch (error) {
-      console.error('Greška pri dohvaćanju cijene dionice:', error);
-      alert('Došlo je do greške pri dohvaćanju cijene dionice. Molimo pokušajte ponovno.');
+      alert(`Greška pri dodavanju dionice ${stock.symbol}: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,10 +140,6 @@ const App = () => {
 
   const getStockName = (symbol) => {
     return availableStocks[symbol] || symbol;
-  };
-
-  const fetchStockPrice = async (symbol) => {
-    return mockPrices[symbol] || 100.00;
   };
 
   const calculateTotalValue = (portfolio) => {
@@ -88,10 +165,14 @@ const App = () => {
             portfolio={portfolio} 
             totalValue={totalValue} 
             onRemoveStock={removeStockFromPortfolio}
+            isLoading={isLoading}
           />
         </div>
         <div className={styles.chartSection}>
-          <PortfolioChart portfolio={portfolio} />
+          <PortfolioChart 
+            portfolio={portfolio}
+            isLoading={isLoading}
+          />
         </div>
       </div>
     </div>

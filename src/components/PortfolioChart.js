@@ -7,7 +7,7 @@ const COLORS = [
   '#82CA9D', '#FFC658', '#FF6B6B', '#4ECDC4', '#45B7D1'
 ];
 
-const PortfolioChart = ({ portfolio }) => {
+const PortfolioChart = ({ portfolio, isLoading }) => {
   const data = portfolio.map(stock => ({
     name: `${stock.name} (${stock.symbol})`,
     value: stock.price * stock.quantity
@@ -40,7 +40,10 @@ const PortfolioChart = ({ portfolio }) => {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>Raspodjela portfelja</h2>
+      <h2 className={styles.title}>
+        Raspodjela portfelja
+        {isLoading && <span className={styles.loadingIndicator}>Osvježavanje...</span>}
+      </h2>
       <div className={styles.chartContainer}>
         {portfolio.length > 0 ? (
           <ResponsiveContainer width="100%" height={400}>
