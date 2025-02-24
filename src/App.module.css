@@ -50,6 +50,11 @@
   min-width: 0; /* Važno za responzivnost grafikona */
 }
 
+.historySection {
+  margin-top: 2rem;
+  width: 100%;
+}
+
 button {
   background-color: #0088FE;
   color: white;

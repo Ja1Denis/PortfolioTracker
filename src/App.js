@@ -3,6 +3,7 @@ import StockSelector from './components/StockSelector';
 import PortfolioSummary from './components/PortfolioSummary';
 import AddNewStock from './components/AddNewStock';
 import PortfolioChart from './components/PortfolioChart';
+import PortfolioHistory from './components/PortfolioHistory';
 import { stockService } from './services/stockService';
 import styles from './App.module.css';
 
@@ -11,6 +12,12 @@ const App = () => {
     const savedPortfolio = localStorage.getItem('portfolio');
     return savedPortfolio ? JSON.parse(savedPortfolio) : [];
   });
+  
+  const [portfolioHistory, setPortfolioHistory] = useState(() => {
+    const savedHistory = localStorage.getItem('portfolioHistory');
+    return savedHistory ? JSON.parse(savedHistory) : [];
+  });
+
   const [totalValue, setTotalValue] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [availableStocks, setAvailableStocks] = useState({
@@ -87,6 +94,10 @@ const App = () => {
     localStorage.setItem('portfolio', JSON.stringify(portfolio));
   }, [portfolio]);
 
+  useEffect(() => {
+    localStorage.setItem('portfolioHistory', JSON.stringify(portfolioHistory));
+  }, [portfolioHistory]);
+
   const addNewStock = (newStock) => {
     setAvailableStocks(prev => ({
       ...prev,
@@ -156,9 +167,16 @@ const App = () => {
     return availableStocks[symbol] || symbol;
   };
 
-  const calculateTotalValue = (portfolio) => {
-    const total = portfolio.reduce((acc, stock) => acc + (stock.price * stock.quantity), 0);
+  const calculateTotalValue = (portfolioData) => {
+    const total = portfolioData.reduce((acc, stock) => acc + (stock.price * stock.quantity), 0);
     setTotalValue(total);
+    
+    // Dodaj novu točku u povijest
+    const newHistoryPoint = {
+      x: new Date().toISOString(),
+      y: total
+    };
+    setPortfolioHistory(prev => [...prev, newHistoryPoint]);
   };
 
   const refreshData = async () => {
@@ -216,6 +234,9 @@ const App = () => {
         <div className={styles.chartSection}>
           <PortfolioChart portfolio={portfolio} isLoading={isLoading} />
         </div>
+      </div>
+      <div className={styles.historySection}>
+        <PortfolioHistory historyData={portfolioHistory} />
       </div>
     </div>
   );
