@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import StockSelector from './components/StockSelector';
 import PortfolioSummary from './components/PortfolioSummary';
 import AddNewStock from './components/AddNewStock';
+import PortfolioChart from './components/PortfolioChart';
 import axios from 'axios';
 import styles from './App.module.css';
 
@@ -75,13 +76,24 @@ const App = () => {
         <h1 className={styles.title}>Praćenje portfelja dionica</h1>
         <p className={styles.subtitle}>Pratite svoje investicije na Zagrebačkoj burzi</p>
       </div>
-      <AddNewStock onAddNewStock={addNewStock} />
-      <StockSelector onAddStock={addStockToPortfolio} availableStocks={availableStocks} />
-      <PortfolioSummary 
-        portfolio={portfolio} 
-        totalValue={totalValue} 
-        onRemoveStock={removeStockFromPortfolio}
-      />
+      
+      <div className={styles.controls}>
+        <AddNewStock onAddNewStock={addNewStock} />
+        <StockSelector onAddStock={addStockToPortfolio} availableStocks={availableStocks} />
+      </div>
+
+      <div className={styles.dashboard}>
+        <div className={styles.summarySection}>
+          <PortfolioSummary 
+            portfolio={portfolio} 
+            totalValue={totalValue} 
+            onRemoveStock={removeStockFromPortfolio}
+          />
+        </div>
+        <div className={styles.chartSection}>
+          <PortfolioChart portfolio={portfolio} />
+        </div>
+      </div>
     </div>
   );
 };
