@@ -1,7 +1,18 @@
 import React from 'react';
 import styles from './PortfolioSummary.module.css';
 
-const PortfolioSummary = ({ portfolio, totalValue, onRemoveStock, isLoading }) => {
+const PortfolioSummary = ({ portfolio, totalValue, onRemoveStock, isLoading, lastUpdate, nextUpdate }) => {
+  const formatDateTime = (date) => {
+    if (!date) return 'N/A';
+    return new Intl.DateTimeFormat('hr-HR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
+
   return (
     <div className={styles.container}>
       <h2 className={styles.title}>
@@ -10,6 +21,10 @@ const PortfolioSummary = ({ portfolio, totalValue, onRemoveStock, isLoading }) =
         </span>
         {isLoading && <span className={styles.loadingIndicator}>Osvježavanje...</span>}
       </h2>
+      <div className={styles.updateInfo}>
+        <p>Zadnje osvježavanje: {formatDateTime(lastUpdate)}</p>
+        <p>Sljedeće osvježavanje: {formatDateTime(nextUpdate)}</p>
+      </div>
       <table className={styles.table}>
         <thead>
           <tr>

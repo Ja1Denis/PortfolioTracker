@@ -18,6 +18,8 @@ const App = () => {
     "PODR": "PODRAVKA d.d.",
     "RIVP": "Valamar Riviera d.d.",
   });
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [nextUpdate, setNextUpdate] = useState(null);
 
   // Backup mock cijene za slučaj da API ne radi
   const mockPrices = {
@@ -29,13 +31,18 @@ const App = () => {
     "RIVP": 485.00
   };
 
-  // Automatsko osvježavanje cijena svakih 5 minuta
+  // Automatsko osvježavanje cijena svakih 2 sata
   useEffect(() => {
     let isMounted = true;
     
     const updatePrices = async () => {
+      if (isMounted) {
+        setIsLoading(true);
+        setLastUpdate(new Date());
+        setNextUpdate(new Date(Date.now() + 7200000));
+      }
+
       if (portfolio.length > 0) {
-        if (isMounted) setIsLoading(true);
         try {
           const updatedPortfolio = await Promise.all(
             portfolio.map(async (stock) => {
@@ -54,17 +61,17 @@ const App = () => {
           }
         } catch (error) {
           console.error('Greška pri ažuriranju cijena:', error);
-        } finally {
-          if (isMounted) setIsLoading(false);
         }
       }
+      
+      if (isMounted) setIsLoading(false);
     };
 
     // Prvo ažuriranje
     updatePrices();
 
     // Postavljanje intervala za ažuriranje
-    const interval = setInterval(updatePrices, 300000); // 5 minuta
+    const interval = setInterval(updatePrices, 7200000); // 2 sata
     
     // Čišćenje
     return () => {
@@ -166,6 +173,8 @@ const App = () => {
             totalValue={totalValue} 
             onRemoveStock={removeStockFromPortfolio}
             isLoading={isLoading}
+            lastUpdate={lastUpdate}
+            nextUpdate={nextUpdate}
           />
         </div>
         <div className={styles.chartSection}>

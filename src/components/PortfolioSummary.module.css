@@ -85,6 +85,19 @@
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+.updateInfo {
+  margin: 1rem 0;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.updateInfo p {
+  margin: 0.25rem 0;
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
