@@ -1,7 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './StockDetails.module.css';
+import StockPriceChart from './StockPriceChart';
+import { getStockPriceHistory } from '../services/stockHistoryService';
 
 const StockDetails = ({ stock, onClose, isOpen }) => {
+  const [priceHistory, setPriceHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchPriceHistory = async () => {
+      if (!stock?.symbol) return;
+      
+      setIsLoading(true);
+      setError(null);
+      try {
+        const history = await getStockPriceHistory(stock.symbol);
+        setPriceHistory(history);
+      } catch (err) {
+        setError('Greška pri dohvaćanju povijesti cijena');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchPriceHistory();
+    }
+  }, [stock?.symbol, isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -27,6 +55,21 @@ const StockDetails = ({ stock, onClose, isOpen }) => {
               <span>{(stock.price * stock.quantity).toFixed(2)}€</span>
             </div>
           </div>
+
+          {isLoading ? (
+            <div className={styles.loadingContainer}>
+              <span className={styles.loadingText}>Učitavanje povijesti cijena...</span>
+            </div>
+          ) : error ? (
+            <div className={styles.errorContainer}>
+              <span className={styles.errorText}>{error}</span>
+            </div>
+          ) : (
+            <StockPriceChart 
+              symbol={stock.symbol}
+              priceHistory={priceHistory}
+            />
+          )}
         </div>
       </div>
     </div>

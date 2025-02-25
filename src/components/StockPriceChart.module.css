@@ -1,0 +1,53 @@
+.chartContainer {
+  margin-top: 2rem;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.chartTitle {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #1f2937;
+  margin: 0;
+}
+
+.timeRanges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.rangeButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.rangeButton:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.rangeButton.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.chart {
+  height: 300px;
+  width: 100%;
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
