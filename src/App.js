@@ -13,6 +13,12 @@ const App = () => {
     return savedPortfolio ? JSON.parse(savedPortfolio) : [];
   });
   
+  // Nova struktura za povijest pojedinačnih dionica
+  const [stocksHistory, setStocksHistory] = useState(() => {
+    const savedHistory = localStorage.getItem('stocksHistory');
+    return savedHistory ? JSON.parse(savedHistory) : {};
+  });
+
   const [portfolioHistory, setPortfolioHistory] = useState(() => {
     const savedHistory = localStorage.getItem('portfolioHistory');
     return savedHistory ? JSON.parse(savedHistory) : [];
@@ -58,10 +64,24 @@ const App = () => {
             portfolio.map(async (stock) => {
               try {
                 const newPrice = await fetchStockPrice(stock.symbol);
+                // Dodajemo novu cijenu u povijest
+                if (isMounted) {
+                  setStocksHistory(prevHistory => {
+                    const timestamp = new Date().toISOString();
+                    const stockHistory = prevHistory[stock.symbol] || [];
+                    return {
+                      ...prevHistory,
+                      [stock.symbol]: [
+                        ...stockHistory,
+                        { x: timestamp, y: newPrice }
+                      ]
+                    };
+                  });
+                }
                 return { ...stock, price: newPrice };
               } catch (error) {
                 console.error(`Greška pri ažuriranju cijene za ${stock.symbol}:`, error);
-                return stock; // Zadržavamo staru cijenu ako dođe do greške
+                return stock;
               }
             })
           );
@@ -77,22 +97,23 @@ const App = () => {
       if (isMounted) setIsLoading(false);
     };
 
-    // Prvo ažuriranje
     updatePrices();
-
-    // Postavljanje intervala za ažuriranje
-    const interval = setInterval(updatePrices, 7200000); // 2 sata
+    const interval = setInterval(updatePrices, 7200000);
     
-    // Čišćenje
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, []); // Prazan dependency array - interval se postavlja samo jednom
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('portfolio', JSON.stringify(portfolio));
   }, [portfolio]);
+
+  // Spremanje povijesti dionica u localStorage
+  useEffect(() => {
+    localStorage.setItem('stocksHistory', JSON.stringify(stocksHistory));
+  }, [stocksHistory]);
 
   useEffect(() => {
     localStorage.setItem('portfolioHistory', JSON.stringify(portfolioHistory));
@@ -193,7 +214,7 @@ const App = () => {
               return { ...stock, price: newPrice };
             } catch (error) {
               console.error(`Greška pri ažuriranju cijene za ${stock.symbol}:`, error);
-              return stock; // Zadržavamo staru cijenu ako dođe do greške
+              return stock;
             }
           })
         );
