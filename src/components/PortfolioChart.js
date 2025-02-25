@@ -10,13 +10,6 @@ const COLORS = [
 const PortfolioChart = ({ portfolio, isLoading }) => {
   const data = portfolio.map(stock => {
     const value = stock.price * stock.quantity;
-    console.log('Stock data:', {
-      symbol: stock.symbol,
-      name: stock.name,
-      price: stock.price,
-      quantity: stock.quantity,
-      value: value
-    });
     return value ? {
       x: stock.symbol,
       y: value,
@@ -24,8 +17,6 @@ const PortfolioChart = ({ portfolio, isLoading }) => {
       tooltip: `${stock.name}\n${value.toFixed(2)}€`
     } : null;
   }).filter(Boolean);
-
-  console.log('Final chart data:', data);
 
   return (
     <div className={styles.container}>

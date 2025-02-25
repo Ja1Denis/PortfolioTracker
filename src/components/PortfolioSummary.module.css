@@ -43,6 +43,15 @@
   background-color: #f9fafb;
 }
 
+.stockRow {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.stockRow:hover {
+  background-color: #f3f4f6;
+}
+
 .positive {
   color: #059669;
 }
