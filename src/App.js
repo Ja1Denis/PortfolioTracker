@@ -4,6 +4,7 @@ import PortfolioSummary from './components/PortfolioSummary';
 import AddNewStock from './components/AddNewStock';
 import PortfolioChart from './components/PortfolioChart';
 import PortfolioHistory from './components/PortfolioHistory';
+import ApiSettings from './components/ApiSettings';
 import { stockService } from './services/stockService';
 import styles from './App.module.css';
 
@@ -36,6 +37,7 @@ const App = () => {
   });
   const [lastUpdate, setLastUpdate] = useState(null);
   const [nextUpdate, setNextUpdate] = useState(null);
+  const [activeView, setActiveView] = useState('portfolio'); // 'portfolio' ili 'settings'
 
   // Backup mock cijene za slučaj da API ne radi
   const mockPrices = {
@@ -64,8 +66,8 @@ const App = () => {
             portfolio.map(async (stock) => {
               try {
                 const newPrice = await fetchStockPrice(stock.symbol);
-                // Dodajemo novu cijenu u povijest
-                if (isMounted) {
+                // Dodajemo novu cijenu u povijest samo ako dolaze novi podaci
+                if (newPrice !== stock.price) {
                   setStocksHistory(prevHistory => {
                     const timestamp = new Date().toISOString();
                     const stockHistory = prevHistory[stock.symbol] || [];
@@ -230,35 +232,54 @@ const App = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Praćenje portfelja dionica</h1>
-        <p className={styles.subtitle}>Pratite svoje investicije na Zagrebačkoj burzi</p>
-      </div>
+      <nav className={styles.navigation}>
+        <button 
+          className={`${styles.navButton} ${activeView === 'portfolio' ? styles.active : ''}`}
+          onClick={() => setActiveView('portfolio')}
+        >
+          Portfolio
+        </button>
+        <button 
+          className={`${styles.navButton} ${activeView === 'settings' ? styles.active : ''}`}
+          onClick={() => setActiveView('settings')}
+        >
+          Postavke
+        </button>
+      </nav>
       
-      <div className={styles.controls}>
-        <AddNewStock onAddNewStock={addNewStock} />
-        <StockSelector onAddStock={addStockToPortfolio} availableStocks={availableStocks} />
-        <button onClick={refreshData}>Ručno osvježi podatke</button>
-      </div>
-
-      <div className={styles.dashboard}>
-        <div className={styles.summarySection}>
-          <PortfolioSummary 
-            portfolio={portfolio} 
-            totalValue={totalValue} 
-            onRemoveStock={removeStockFromPortfolio}
-            isLoading={isLoading}
-            lastUpdate={lastUpdate}
-            nextUpdate={nextUpdate}
-          />
-        </div>
-        <div className={styles.chartSection}>
-          <PortfolioChart portfolio={portfolio} isLoading={isLoading} />
-        </div>
-      </div>
-      <div className={styles.historySection}>
-        <PortfolioHistory historyData={portfolioHistory} />
-      </div>
+      {activeView === 'portfolio' ? (
+        <>
+          <div className={styles.header}>
+            <h1 className={styles.title}>Praćenje portfelja dionica</h1>
+            <p className={styles.subtitle}>Pratite svoje investicije na Zagrebačkoj burzi</p>
+          </div>
+          <div className={styles.controls}>
+            <AddNewStock onAddNewStock={addNewStock} />
+            <StockSelector onAddStock={addStockToPortfolio} availableStocks={availableStocks} />
+            <button onClick={refreshData}>Ručno osvježi podatke</button>
+          </div>
+          <div className={styles.dashboard}>
+            <div className={styles.summarySection}>
+              <PortfolioSummary 
+                portfolio={portfolio} 
+                totalValue={totalValue} 
+                onRemoveStock={removeStockFromPortfolio}
+                isLoading={isLoading}
+                lastUpdate={lastUpdate}
+                nextUpdate={nextUpdate}
+              />
+            </div>
+            <div className={styles.chartSection}>
+              <PortfolioChart portfolio={portfolio} isLoading={isLoading} />
+            </div>
+          </div>
+          <div className={styles.historySection}>
+            <PortfolioHistory historyData={portfolioHistory} />
+          </div>
+        </>
+      ) : (
+        <ApiSettings />
+      )}
     </div>
   );
 };

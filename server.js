@@ -43,12 +43,11 @@ app.get('/', (req, res) => {
   });
 });
 
-const API_KEY = process.env.REACT_APP_PERPLEXITY_API_KEY;
-
 // Test ruta
 app.get('/api/test', async (req, res) => {
   try {
     console.log('\nTest API poziv...');
+    const API_KEY = process.env.REACT_APP_PERPLEXITY_API_KEY;
     if (!API_KEY) {
       throw new Error('API ključ nije postavljen');
     }
@@ -93,82 +92,47 @@ app.get('/api/test', async (req, res) => {
 // Ruta za dohvaćanje cijena dionica
 app.post('/api/stock-price', async (req, res) => {
   try {
-    const { symbol } = req.body;
-    console.log('\nZahtjev za cijenu dionice:', symbol);
+    const { symbol, apiKey } = req.body;
     
-    if (!symbol) {
-      throw new Error('Symbol nije specificiran');
+    if (!apiKey) {
+      throw new Error('API ključ nije proslijeđen');
     }
 
-    if (!API_KEY) {
-      throw new Error('API ključ nije postavljen');
-    }
-
-    console.log('Slanje zahtjeva na Perplexity API...');
-    const requestData = {
-      model: "sonar",
+    console.log('Dohvaćanje cijene za dionicu:', symbol);
+    
+    const prompt = `Koja je trenutna cijena dionice ${symbol} na Zagrebačkoj burzi (ZSE)? Molim samo broj bez dodatnog teksta.`;
+    
+    const response = await axios.post('https://api.perplexity.ai/chat/completions', {
+      model: 'mistral-7b-instruct',
       messages: [{
-        role: "system",
-        content: "You are a stock price API for the Zagreb Stock Exchange (ZSE). ONLY return the current price as a number, without any text, currency symbol or explanation. For example: 185.50"
-      }, {
-        role: "user",
-        content: `Return ONLY the current price number for ${symbol} stock on ZSE. Just the number, nothing else.`
-      }],
-      max_tokens: 10
-    };
-
-    console.log('Request data:', JSON.stringify(requestData, null, 2));
-
-    const response = await axios.post('https://api.perplexity.ai/chat/completions', 
-      requestData,
-      {
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json'
-        }
+        role: 'user',
+        content: prompt
+      }]
+    }, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       }
-    );
-
-    console.log('API odgovor:', JSON.stringify(response.data, null, 2));
-    
-    if (!response.data.choices || !response.data.choices[0]) {
-      throw new Error('Neispravan format odgovora');
-    }
-
-    const priceText = response.data.choices[0].message.content.trim();
-    console.log('Dobiveni tekst:', priceText);
-    
-    const priceMatch = priceText.match(/\d+([,.]\d{1,2})?/);
-    if (!priceMatch) {
-      throw new Error('Nije moguće pronaći broj u odgovoru: ' + priceText);
-    }
-
-    const price = parseFloat(priceMatch[0].replace(',', '.'));
-    console.log('Parsirana cijena:', price);
-
-    if (isNaN(price)) {
-      throw new Error('Parsirana vrijednost nije broj');
-    }
-
-    console.log('Vraćanje cijene:', price);
-    res.json({ price });
-  } catch (error) {
-    console.error('\nDetaljna greška:', {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      stack: error.stack?.split('\n')
     });
 
-    if (error.response?.data) {
-      console.error('API Error Response:', JSON.stringify(error.response.data, null, 2));
+    if (response.data.choices && response.data.choices[0]) {
+      const priceText = response.data.choices[0].message.content.trim();
+      const price = parseFloat(priceText);
+      
+      if (!isNaN(price)) {
+        console.log('Uspješno dohvaćena cijena:', price);
+        res.json({ price });
+      } else {
+        throw new Error('Nije moguće parsirati cijenu iz odgovora');
+      }
+    } else {
+      throw new Error('Neispravan format odgovora od API-ja');
     }
-    
+  } catch (error) {
+    console.error('Greška:', error.message);
     res.status(500).json({ 
-      error: 'Failed to fetch stock price',
-      message: error.message,
-      details: error.response?.data || error.message
+      error: error.message,
+      details: error.response?.data 
     });
   }
 });

@@ -1,7 +1,7 @@
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 4rem 2rem;
   min-height: 100vh;
   background-color: #f3f4f6;
 }
@@ -54,6 +54,42 @@
 .historySection {
   margin-top: 2rem;
   width: 100%;
+}
+
+.navigation {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navButton {
+  padding: 10px 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.2s;
+  color: #666;
+}
+
+.navButton:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.navButton.active {
+  background: #007bff;
+  color: white;
+  border-color: #0056b3;
 }
 
 button {
