@@ -2,23 +2,49 @@ import axios from 'axios';
 
 const getStockPrice = async (symbol) => {
   try {
-    const apiKey = localStorage.getItem('perplexityApiKey');
-    if (!apiKey) {
-      throw new Error('API ključ nije postavljen. Molimo postavite ga u Postavkama.');
+    // Prvo pokušaj s Perplexity API-jem
+    const perplexityKey = localStorage.getItem('perplexityApiKey');
+    if (perplexityKey) {
+      try {
+        console.log('Pokušavam dohvatiti cijenu s Perplexity API-jem za:', symbol);
+        const response = await axios.post('http://localhost:3001/api/stock-price', {
+          symbol,
+          apiKey: perplexityKey,
+          provider: 'perplexity'
+        });
+        
+        if (response.data.price) {
+          console.log('Dohvaćena cijena preko Perplexity:', response.data.price);
+          return response.data.price;
+        }
+      } catch (perplexityError) {
+        console.warn('Greška s Perplexity API-jem:', perplexityError.message);
+      }
     }
 
-    console.log('Dohvaćanje cijene za:', symbol);
-    const response = await axios.post('http://localhost:3001/api/stock-price', {
-      symbol,
-      apiKey
-    });
-    
-    if (response.data.price) {
-      console.log('Dohvaćena cijena:', response.data.price);
-      return response.data.price;
-    } else {
-      throw new Error('Cijena nije dostupna');
+    // Ako Perplexity ne uspije ili nije konfiguriran, pokušaj s Gemini
+    const geminiKey = localStorage.getItem('geminiApiKey');
+    if (geminiKey) {
+      try {
+        console.log('Pokušavam dohvatiti cijenu s Gemini API-jem za:', symbol);
+        const response = await axios.post('http://localhost:3001/api/stock-price', {
+          symbol,
+          apiKey: geminiKey,
+          provider: 'gemini'
+        });
+        
+        if (response.data.price) {
+          console.log('Dohvaćena cijena preko Gemini:', response.data.price);
+          return response.data.price;
+        }
+      } catch (geminiError) {
+        console.warn('Greška s Gemini API-jem:', geminiError.message);
+        throw geminiError; // Ako ni Gemini ne radi, propagiraj grešku
+      }
     }
+
+    // Ako niti jedan API nije konfiguriran
+    throw new Error('Niti jedan API ključ nije postavljen. Molimo postavite barem jedan API ključ u Postavkama.');
   } catch (error) {
     console.error('Greška pri dohvaćanju cijene dionice:', {
       symbol,
@@ -26,7 +52,7 @@ const getStockPrice = async (symbol) => {
       status: error.response?.status,
       details: error.response?.data
     });
-    throw error; // Propagiramo grešku dalje
+    throw error;
   }
 };
 

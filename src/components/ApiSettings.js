@@ -2,54 +2,79 @@ import React, { useState, useEffect } from 'react';
 import styles from './ApiSettings.module.css';
 
 const ApiSettings = () => {
-  const [apiKey, setApiKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
+  const [apiKeys, setApiKeys] = useState({
+    perplexity: '',
+    gemini: ''
+  });
+  const [showKeys, setShowKeys] = useState({
+    perplexity: false,
+    gemini: false
+  });
   const [saveStatus, setSaveStatus] = useState('');
 
   useEffect(() => {
-    const savedKey = localStorage.getItem('perplexityApiKey');
-    if (savedKey) {
-      setApiKey(savedKey);
-    }
+    const savedPerplexityKey = localStorage.getItem('perplexityApiKey');
+    const savedGeminiKey = localStorage.getItem('geminiApiKey');
+    
+    setApiKeys({
+      perplexity: savedPerplexityKey || '',
+      gemini: savedGeminiKey || ''
+    });
   }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    localStorage.setItem('perplexityApiKey', apiKey);
-    setSaveStatus('API ključ je uspješno spremljen!');
+    localStorage.setItem('perplexityApiKey', apiKeys.perplexity);
+    localStorage.setItem('geminiApiKey', apiKeys.gemini);
+    setSaveStatus('API ključevi su uspješno spremljeni!');
     setTimeout(() => setSaveStatus(''), 3000);
   };
 
-  const toggleShowKey = () => {
-    setShowKey(!showKey);
+  const toggleShowKey = (provider) => {
+    setShowKeys(prev => ({
+      ...prev,
+      [provider]: !prev[provider]
+    }));
   };
+
+  const handleKeyChange = (provider, value) => {
+    setApiKeys(prev => ({
+      ...prev,
+      [provider]: value
+    }));
+  };
+
+  const renderApiKeyInput = (provider, label) => (
+    <div className={styles.inputGroup}>
+      <label htmlFor={`${provider}Key`}>{label}:</label>
+      <div className={styles.inputWrapper}>
+        <input
+          type={showKeys[provider] ? 'text' : 'password'}
+          id={`${provider}Key`}
+          value={apiKeys[provider]}
+          onChange={(e) => handleKeyChange(provider, e.target.value)}
+          placeholder={`Unesite vaš ${label}`}
+          className={styles.input}
+        />
+        <button
+          type="button"
+          onClick={() => toggleShowKey(provider)}
+          className={styles.toggleButton}
+        >
+          {showKeys[provider] ? '🙈' : '👁️'}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className={styles.container}>
       <h2>Postavke API-ja</h2>
       <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.inputGroup}>
-          <label htmlFor="apiKey">Perplexity API Ključ:</label>
-          <div className={styles.inputWrapper}>
-            <input
-              type={showKey ? 'text' : 'password'}
-              id="apiKey"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Unesite vaš API ključ"
-              className={styles.input}
-            />
-            <button
-              type="button"
-              onClick={toggleShowKey}
-              className={styles.toggleButton}
-            >
-              {showKey ? '🙈' : '👁️'}
-            </button>
-          </div>
-        </div>
+        {renderApiKeyInput('perplexity', 'Perplexity API Ključ')}
+        {renderApiKeyInput('gemini', 'Gemini API Ključ')}
         <button type="submit" className={styles.submitButton}>
-          Spremi API Ključ
+          Spremi API Ključeve
         </button>
       </form>
       {saveStatus && <div className={styles.status}>{saveStatus}</div>}

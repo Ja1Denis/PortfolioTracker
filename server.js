@@ -92,47 +92,78 @@ app.get('/api/test', async (req, res) => {
 // Ruta za dohvaćanje cijena dionica
 app.post('/api/stock-price', async (req, res) => {
   try {
-    const { symbol, apiKey } = req.body;
+    const { symbol, apiKey, provider = 'perplexity' } = req.body;
     
     if (!apiKey) {
       throw new Error('API ključ nije proslijeđen');
     }
 
-    console.log('Dohvaćanje cijene za dionicu:', symbol);
+    console.log('Dohvaćanje cijene za dionicu:', symbol, 'koristeći:', provider);
     
-    const prompt = `Koja je trenutna cijena dionice ${symbol} na Zagrebačkoj burzi (ZSE)? Molim samo broj bez dodatnog teksta.`;
-    
-    const response = await axios.post('https://api.perplexity.ai/chat/completions', {
-      model: 'mistral-7b-instruct',
-      messages: [{
-        role: 'user',
-        content: prompt
-      }]
-    }, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    let response;
+    if (provider === 'perplexity') {
+      response = await axios.post('https://api.perplexity.ai/chat/completions', {
+        model: 'sonar',
+        messages: [{
+          role: 'user',
+          content: `Koja je trenutna cijena dionice ${symbol} na Zagrebačkoj burzi (ZSE)? Molim samo broj bez dodatnog teksta.`
+        }]
+      }, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-    if (response.data.choices && response.data.choices[0]) {
-      const priceText = response.data.choices[0].message.content.trim();
-      const price = parseFloat(priceText);
-      
-      if (!isNaN(price)) {
-        console.log('Uspješno dohvaćena cijena:', price);
-        res.json({ price });
+      if (response.data.choices && response.data.choices[0]) {
+        const priceText = response.data.choices[0].message.content.trim();
+        const price = parseFloat(priceText);
+        
+        if (!isNaN(price)) {
+          res.json({ price });
+        } else {
+          throw new Error('Nije moguće parsirati cijenu iz odgovora');
+        }
       } else {
-        throw new Error('Nije moguće parsirati cijenu iz odgovora');
+        throw new Error('Neispravan format odgovora');
+      }
+    } else if (provider === 'gemini') {
+      response = await axios.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+        contents: [{
+          parts: [{
+            text: `Koja je trenutna cijena dionice ${symbol} na Zagrebačkoj burzi (ZSE)? Odgovor samo broj.`
+          }]
+        }]
+      }, {
+        params: {
+          key: apiKey
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data.candidates && response.data.candidates[0]?.content?.parts?.[0]?.text) {
+        const priceText = response.data.candidates[0].content.parts[0].text.trim();
+        const price = parseFloat(priceText);
+        
+        if (!isNaN(price)) {
+          res.json({ price });
+        } else {
+          throw new Error('Nije moguće parsirati cijenu iz odgovora');
+        }
+      } else {
+        throw new Error('Neispravan format odgovora');
       }
     } else {
-      throw new Error('Neispravan format odgovora od API-ja');
+      throw new Error('Nepodržani API provider');
     }
   } catch (error) {
-    console.error('Greška:', error.message);
-    res.status(500).json({ 
-      error: error.message,
-      details: error.response?.data 
+    console.error('Greška:', error.message, error.response?.data);
+    res.status(500).json({
+      error: 'Greška pri dohvaćanju cijene',
+      message: error.message,
+      details: error.response?.data
     });
   }
 });
