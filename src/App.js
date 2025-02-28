@@ -7,6 +7,7 @@ import PortfolioHistory from './components/PortfolioHistory';
 import ApiSettings from './components/ApiSettings';
 import AboutPage from './components/AboutPage';
 import AddCashForm from './components/AddCashForm';
+import DataManagement from './components/DataManagement';
 import { stockService } from './services/stockService';
 import styles from './App.module.css';
 
@@ -342,6 +343,17 @@ const App = () => {
     localStorage.setItem('cash', JSON.stringify(newCash));
   };
 
+  const handleDataImport = (data) => {
+    setPortfolio(data.portfolio);
+    setCash(data.cash);
+    setStocksHistory(data.stocksHistory);
+    
+    // Spremanje u localStorage
+    localStorage.setItem('portfolio', JSON.stringify(data.portfolio));
+    localStorage.setItem('cash', JSON.stringify(data.cash));
+    localStorage.setItem('stocksHistory', JSON.stringify(data.stocksHistory));
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -381,6 +393,12 @@ const App = () => {
                 {isLoading ? 'Osvježavanje...' : 'Ručno osvježi podatke'}
               </button>
             </div>
+            <DataManagement 
+              portfolio={portfolio}
+              cash={cash}
+              stocksHistory={stocksHistory}
+              onImport={handleDataImport}
+            />
             <div className={styles.portfolioSection}>
               <div className={styles.summarySection}>
                 <PortfolioSummary 
