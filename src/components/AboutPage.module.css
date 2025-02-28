@@ -174,6 +174,54 @@
   font-weight: 500;
 }
 
+.authorCard {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  padding: 2rem;
+  border-radius: 12px;
+  color: white;
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1);
+  margin-top: 1rem;
+}
+
+.authorInfo {
+  text-align: center;
+}
+
+.authorInfo h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: white;
+}
+
+.authorInfo p {
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 1.5rem;
+}
+
+.authorLinks {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.authorLink {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  text-decoration: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.authorLink:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 1rem;
@@ -196,5 +244,13 @@
 
   .apiCard {
     padding: 1.5rem;
+  }
+
+  .authorCard {
+    padding: 1.5rem;
+  }
+
+  .authorLinks {
+    flex-direction: column;
   }
 }

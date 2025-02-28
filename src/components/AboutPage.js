@@ -109,6 +109,34 @@ const AboutPage = () => {
           <li>Perplexity API za podatke</li>
         </ul>
       </section>
+
+      <section className={styles.section}>
+        <h2>O Autoru</h2>
+        <div className={styles.authorCard}>
+          <div className={styles.authorInfo}>
+            <h3>Denis Sakač</h3>
+            <p>AI prompt kuhar</p>
+            <div className={styles.authorLinks}>
+              <a 
+                href="https://denissakac.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.authorLink}
+              >
+                🌐 denissakac.com
+              </a>
+              <a 
+                href="https://www.facebook.com/sdenis.vr" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.authorLink}
+              >
+                📱 Facebook
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

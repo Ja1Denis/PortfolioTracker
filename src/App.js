@@ -349,57 +349,26 @@ const App = () => {
         <p className={styles.subtitle}>Pratite svoje investicije na Zagrebačkoj burzi</p>
         <div className={styles.headerButtons}>
           <button 
-            className={`${styles.viewButton} ${activeView === 'portfolio' ? styles.active : ''}`}
-            onClick={() => setActiveView('portfolio')}
-          >
-            Portfelj
-          </button>
-          <button 
-            className={`${styles.viewButton} ${activeView === 'settings' ? styles.active : ''}`}
-            onClick={() => setActiveView('settings')}
-          >
-            Postavke
-          </button>
-          <button 
             className={styles.viewButton}
-            onClick={() => setShowAbout(true)}
+            onClick={() => setShowAbout(!showAbout)}
           >
-            O Aplikaciji
+            {showAbout ? 'Natrag na Portfolio' : 'O Aplikaciji'}
           </button>
-          <button 
-            className={`${styles.viewButton} ${styles.dangerButton}`}
-            onClick={clearPortfolio}
-          >
-            Očisti Portfelj
-          </button>
-          <button 
-            className={styles.viewButton}
-            onClick={() => setShowAddCash(true)}
-          >
-            Dodaj Gotovinu
-          </button>
+          {!showAbout && (
+            <button
+              className={styles.addButton}
+              onClick={() => setShowAddCash(true)}
+            >
+              Dodaj Gotovinu
+            </button>
+          )}
         </div>
       </header>
 
-      <nav className={styles.navigation}>
-        <button 
-          className={`${styles.navButton} ${activeView === 'portfolio' ? styles.active : ''}`}
-          onClick={() => setActiveView('portfolio')}
-        >
-          Portfolio
-        </button>
-        <button 
-          className={`${styles.navButton} ${activeView === 'settings' ? styles.active : ''}`}
-          onClick={() => setActiveView('settings')}
-        >
-          Postavke
-        </button>
-      </nav>
-      
-      {showAbout ? (
-        <AboutPage />
-      ) : (
-        <main className={styles.main}>
+      <main className={styles.main}>
+        {showAbout ? (
+          <AboutPage />
+        ) : (
           <div className={styles.content}>
             <div className={styles.controls}>
               <AddNewStock onAddNewStock={addNewStock} />
@@ -437,8 +406,9 @@ const App = () => {
               </div>
             </div>
           </div>
-        </main>
-      )}
+        )}
+      </main>
+
       {showAddCash && (
         <AddCashForm
           onAdd={addCash}
