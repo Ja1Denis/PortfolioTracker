@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styles from './PortfolioSummary.module.css';
 import StockDetailsModal from './StockDetailsModal';
+import CashDetailsModal from './CashDetailsModal';
 
 const formatCurrency = (value, currency = 'EUR') => {
   return new Intl.NumberFormat('hr-HR', {
@@ -24,6 +25,7 @@ const PortfolioSummary = ({
   onRemoveCash
 }) => {
   const [selectedStock, setSelectedStock] = useState(null);
+  const [showCashDetails, setShowCashDetails] = useState(false);
 
   // Grupiranje dionica po tržištu
   const stocksByMarket = portfolio.reduce((acc, stock) => {
@@ -126,12 +128,19 @@ const PortfolioSummary = ({
             </thead>
             <tbody>
               {cash.map((item, index) => (
-                <tr key={index}>
+                <tr 
+                  key={index}
+                  onClick={() => setShowCashDetails(true)}
+                  className={styles.stockRow}
+                >
                   <td>{item.currency}</td>
                   <td>{formatCurrency(item.amount, item.currency)}</td>
                   <td>
                     <button
-                      onClick={() => onRemoveCash(index)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveCash(index);
+                      }}
                       className={styles.removeButton}
                     >
                       Ukloni
@@ -159,10 +168,17 @@ const PortfolioSummary = ({
       </div>
 
       {selectedStock && (
-        <StockDetailsModal
+        <StockDetailsModal 
           stock={selectedStock}
           onClose={() => setSelectedStock(null)}
-          history={stocksHistory[selectedStock.symbol] || []}
+          history={stocksHistory[selectedStock.symbol]}
+        />
+      )}
+
+      {showCashDetails && (
+        <CashDetailsModal
+          cash={cash}
+          onClose={() => setShowCashDetails(false)}
         />
       )}
     </div>
