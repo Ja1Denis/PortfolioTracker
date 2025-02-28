@@ -22,7 +22,8 @@ const PortfolioSummary = ({
   isLoading,
   stocksHistory,
   onRemoveStock,
-  onRemoveCash
+  onRemoveCash,
+  onUpdateCash
 }) => {
   const [selectedStock, setSelectedStock] = useState(null);
   const [showCashDetails, setShowCashDetails] = useState(false);
@@ -179,6 +180,7 @@ const PortfolioSummary = ({
         <CashDetailsModal
           cash={cash}
           onClose={() => setShowCashDetails(false)}
+          onUpdateCash={onUpdateCash}
         />
       )}
     </div>

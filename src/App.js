@@ -322,6 +322,26 @@ const App = () => {
     calculateTotalValue(portfolio);
   };
 
+  const updateCash = (currency, amount) => {
+    const newCash = [...cash];
+    const existingIndex = newCash.findIndex(item => item.currency === currency);
+    
+    if (existingIndex !== -1) {
+      newCash[existingIndex] = {
+        ...newCash[existingIndex],
+        amount: newCash[existingIndex].amount + amount
+      };
+    } else {
+      newCash.push({
+        currency,
+        amount
+      });
+    }
+    
+    setCash(newCash);
+    localStorage.setItem('cash', JSON.stringify(newCash));
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -403,6 +423,7 @@ const App = () => {
                   stocksHistory={stocksHistory}
                   onRemoveStock={removeStockFromPortfolio}
                   onRemoveCash={removeCash}
+                  onUpdateCash={updateCash}
                 />
               </div>
               <div className={styles.chartSection}>
