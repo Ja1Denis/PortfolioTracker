@@ -5,7 +5,7 @@ import PortfolioSummary from './components/PortfolioSummary';
 import PortfolioChart from './components/PortfolioChart';
 import PortfolioHistory from './components/PortfolioHistory';
 import ApiSettings from './components/ApiSettings';
-import AboutModal from './components/AboutModal';
+import AboutPage from './components/AboutPage';
 import AddCashForm from './components/AddCashForm';
 import { stockService } from './services/stockService';
 import styles from './App.module.css';
@@ -396,7 +396,9 @@ const App = () => {
         </button>
       </nav>
       
-      {activeView === 'portfolio' ? (
+      {showAbout ? (
+        <AboutPage />
+      ) : (
         <main className={styles.main}>
           <div className={styles.content}>
             <div className={styles.controls}>
@@ -436,10 +438,7 @@ const App = () => {
             </div>
           </div>
         </main>
-      ) : (
-        <ApiSettings />
       )}
-      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
       {showAddCash && (
         <AddCashForm
           onAdd={addCash}
