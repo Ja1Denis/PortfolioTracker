@@ -1,14 +1,27 @@
 import React, { useState } from 'react';
 import styles from './StockSelector.module.css';
 
+const AVAILABLE_MARKETS = {
+  "ZSE": "Zagrebačka burza",
+  "NYSE": "New York Stock Exchange",
+  "NASDAQ": "NASDAQ",
+  "FRA": "Frankfurt Stock Exchange",
+  "LSE": "London Stock Exchange"
+};
+
 const StockSelector = ({ onAddStock, availableStocks }) => {
   const [selectedStock, setSelectedStock] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [market, setMarket] = useState("ZSE");
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (selectedStock && quantity > 0) {
-      onAddStock({ symbol: selectedStock, quantity: parseInt(quantity) });
+      onAddStock({ 
+        symbol: selectedStock, 
+        quantity: parseInt(quantity),
+        market: market
+      });
       setSelectedStock("");
       setQuantity("");
     }
@@ -27,6 +40,18 @@ const StockSelector = ({ onAddStock, availableStocks }) => {
           {Object.entries(availableStocks).map(([symbol, name]) => (
             <option key={symbol} value={symbol}>
               {name} ({symbol})
+            </option>
+          ))}
+        </select>
+        <select
+          className={styles.select}
+          value={market}
+          onChange={(e) => setMarket(e.target.value)}
+          required
+        >
+          {Object.entries(AVAILABLE_MARKETS).map(([code, name]) => (
+            <option key={code} value={code}>
+              {name} ({code})
             </option>
           ))}
         </select>

@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
 import styles from './AddNewStock.module.css';
 
+const AVAILABLE_MARKETS = {
+  "ZSE": "Zagrebačka burza",
+  "NYSE": "New York Stock Exchange",
+  "NASDAQ": "NASDAQ",
+  "FRA": "Frankfurt Stock Exchange",
+  "LSE": "London Stock Exchange"
+};
+
 const AddNewStock = ({ onAddNewStock }) => {
   const [symbol, setSymbol] = useState('');
   const [name, setName] = useState('');
+  const [market, setMarket] = useState('ZSE');
   const [initialPrice, setInitialPrice] = useState('');
   const [showForm, setShowForm] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (symbol && name && initialPrice) {
+    if (symbol && name && initialPrice && market) {
       onAddNewStock({
         symbol: symbol.toUpperCase(),
         name,
+        market,
         price: parseFloat(initialPrice)
       });
       setSymbol('');
@@ -51,19 +61,31 @@ const AddNewStock = ({ onAddNewStock }) => {
               className={styles.input}
               required
             />
+            <select
+              value={market}
+              onChange={(e) => setMarket(e.target.value)}
+              className={styles.input}
+              required
+            >
+              {Object.entries(AVAILABLE_MARKETS).map(([code, name]) => (
+                <option key={code} value={code}>
+                  {name} ({code})
+                </option>
+              ))}
+            </select>
             <input
               type="number"
               value={initialPrice}
               onChange={(e) => setInitialPrice(e.target.value)}
-              placeholder="Početna cijena (EUR)"
+              placeholder="Početna cijena"
               className={styles.input}
               required
-              min="0"
               step="0.01"
+              min="0"
             />
           </div>
           <button type="submit" className={styles.submitButton}>
-            Spremi dionicu
+            Dodaj dionicu
           </button>
         </form>
       )}

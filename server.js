@@ -92,21 +92,41 @@ app.get('/api/test', async (req, res) => {
 // Ruta za dohvaćanje cijena dionica
 app.post('/api/stock-price', async (req, res) => {
   try {
-    const { symbol, apiKey, provider = 'perplexity' } = req.body;
+    const { symbol, apiKey, provider = 'perplexity', market = 'ZSE' } = req.body;
     
     if (!apiKey) {
       throw new Error('API ključ nije proslijeđen');
     }
 
-    console.log('Dohvaćanje cijene za dionicu:', symbol, 'koristeći:', provider);
+    console.log('Dohvaćanje cijene za dionicu:', symbol, 'na tržištu:', market, 'koristeći:', provider);
     
+    // Priprema prompta ovisno o tržištu
+    const getPromptForMarket = (symbol, market) => {
+      switch (market) {
+        case 'ZSE':
+          return `Koja je trenutna cijena dionice ${symbol} na Zagrebačkoj burzi (ZSE)? Molim samo broj u HRK/EUR bez dodatnog teksta.`;
+        case 'NYSE':
+          return `What is the current stock price of ${symbol} on the New York Stock Exchange (NYSE)? Please respond with just the number in USD.`;
+        case 'NASDAQ':
+          return `What is the current stock price of ${symbol} on NASDAQ? Please respond with just the number in USD.`;
+        case 'FRA':
+          return `What is the current stock price of ${symbol} on Frankfurt Stock Exchange (FRA)? Please respond with just the number in EUR.`;
+        case 'LSE':
+          return `What is the current stock price of ${symbol} on London Stock Exchange (LSE)? Please respond with just the number in GBP.`;
+        default:
+          return `What is the current stock price of ${symbol} on ${market}? Please respond with just the number.`;
+      }
+    };
+
+    const prompt = getPromptForMarket(symbol, market);
     let response;
+
     if (provider === 'perplexity') {
       response = await axios.post('https://api.perplexity.ai/chat/completions', {
         model: 'sonar',
         messages: [{
           role: 'user',
-          content: `Koja je trenutna cijena dionice ${symbol} na Zagrebačkoj burzi (ZSE)? Molim samo broj bez dodatnog teksta.`
+          content: prompt
         }]
       }, {
         headers: {
@@ -120,7 +140,11 @@ app.post('/api/stock-price', async (req, res) => {
         const price = parseFloat(priceText);
         
         if (!isNaN(price)) {
-          res.json({ price });
+          res.json({ 
+            price,
+            market,
+            currency: getCurrencyForMarket(market)
+          });
         } else {
           throw new Error('Nije moguće parsirati cijenu iz odgovora');
         }
@@ -128,10 +152,10 @@ app.post('/api/stock-price', async (req, res) => {
         throw new Error('Neispravan format odgovora');
       }
     } else if (provider === 'gemini') {
-      response = await axios.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+      response = await axios.post('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
         contents: [{
           parts: [{
-            text: `Koja je trenutna cijena dionice ${symbol} na Zagrebačkoj burzi (ZSE)? Odgovor samo broj.`
+            text: prompt
           }]
         }]
       }, {
@@ -148,7 +172,11 @@ app.post('/api/stock-price', async (req, res) => {
         const price = parseFloat(priceText);
         
         if (!isNaN(price)) {
-          res.json({ price });
+          res.json({ 
+            price,
+            market,
+            currency: getCurrencyForMarket(market)
+          });
         } else {
           throw new Error('Nije moguće parsirati cijenu iz odgovora');
         }
@@ -167,6 +195,23 @@ app.post('/api/stock-price', async (req, res) => {
     });
   }
 });
+
+// Helper funkcija za određivanje valute prema tržištu
+const getCurrencyForMarket = (market) => {
+  switch (market) {
+    case 'ZSE':
+      return 'EUR';
+    case 'NYSE':
+    case 'NASDAQ':
+      return 'USD';
+    case 'FRA':
+      return 'EUR';
+    case 'LSE':
+      return 'GBP';
+    default:
+      return 'Unknown';
+  }
+};
 
 // Pokretanje servera
 const PORT = process.env.PORT || 3001;

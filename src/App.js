@@ -65,9 +65,9 @@ const App = () => {
           const updatedPortfolio = await Promise.all(
             portfolio.map(async (stock) => {
               try {
-                const newPrice = await fetchStockPrice(stock.symbol);
+                const priceData = await fetchStockPrice(stock.symbol, stock.market);
                 // Dodajemo novu cijenu u povijest samo ako dolaze novi podaci
-                if (newPrice !== stock.price) {
+                if (priceData.price !== stock.price) {
                   setStocksHistory(prevHistory => {
                     const timestamp = new Date().toISOString();
                     const stockHistory = prevHistory[stock.symbol] || [];
@@ -75,12 +75,17 @@ const App = () => {
                       ...prevHistory,
                       [stock.symbol]: [
                         ...stockHistory,
-                        { x: timestamp, y: newPrice }
+                        { x: timestamp, y: priceData.price }
                       ]
                     };
                   });
                 }
-                return { ...stock, price: newPrice };
+                return { 
+                  ...stock, 
+                  price: priceData.price,
+                  currency: priceData.currency,
+                  value: priceData.price * stock.quantity 
+                };
               } catch (error) {
                 console.error(`Greška pri ažuriranju cijene za ${stock.symbol}:`, error);
                 return stock;
@@ -128,11 +133,11 @@ const App = () => {
     }));
   };
 
-  const fetchStockPrice = async (symbol) => {
+  const fetchStockPrice = async (symbol, market) => {
     try {
-      return await stockService.getStockPrice(symbol);
+      return await stockService.getStockPrice(symbol, market);
     } catch (error) {
-      console.error(`Nije moguće dohvatiti cijenu za ${symbol}:`, error);
+      console.error(`Nije moguće dohvatiti cijenu za ${symbol} na tržištu ${market}:`, error);
       throw error;
     }
   };
@@ -142,39 +147,33 @@ const App = () => {
 
     setIsLoading(true);
     try {
-      const price = await fetchStockPrice(stock.symbol);
+      const priceData = await fetchStockPrice(stock.symbol, stock.market);
       const newStock = {
         symbol: stock.symbol,
         quantity: parseFloat(stock.quantity),
-        price,
-        value: price * parseFloat(stock.quantity)
+        price: priceData.price,
+        market: stock.market,
+        currency: priceData.currency,
+        value: priceData.price * parseFloat(stock.quantity)
       };
 
       setPortfolio(prevPortfolio => {
-        const existingStockIndex = prevPortfolio.findIndex(s => s.symbol === stock.symbol);
-        if (existingStockIndex >= 0) {
-          // Ažuriramo postojeću dionicu
-          const updatedPortfolio = [...prevPortfolio];
-          const existingStock = updatedPortfolio[existingStockIndex];
-          updatedPortfolio[existingStockIndex] = {
-            ...existingStock,
-            quantity: existingStock.quantity + parseFloat(stock.quantity),
-            value: (existingStock.quantity + parseFloat(stock.quantity)) * price
-          };
-          return updatedPortfolio;
-        } else {
-          // Dodajemo novu dionicu
-          return [...prevPortfolio, newStock];
-        }
+        const updatedPortfolio = [...prevPortfolio, newStock];
+        calculateTotalValue(updatedPortfolio);
+        return updatedPortfolio;
       });
 
-      // Ažuriramo ukupnu vrijednost
-      setPortfolio(prevPortfolio => {
-        calculateTotalValue(prevPortfolio);
-        return prevPortfolio;
-      });
+      // Inicijalizacija povijesti za novu dionicu
+      setStocksHistory(prevHistory => ({
+        ...prevHistory,
+        [stock.symbol]: [
+          { x: new Date().toISOString(), y: priceData.price }
+        ]
+      }));
+
     } catch (error) {
-      alert(`Greška pri dodavanju dionice ${stock.symbol}: ${error.message}`);
+      console.error('Greška pri dodavanju dionice:', error);
+      alert('Nije moguće dodati dionicu. Provjerite je li API ključ ispravno postavljen.');
     } finally {
       setIsLoading(false);
     }
@@ -212,8 +211,13 @@ const App = () => {
         const updatedPortfolio = await Promise.all(
           portfolio.map(async (stock) => {
             try {
-              const newPrice = await fetchStockPrice(stock.symbol);
-              return { ...stock, price: newPrice };
+              const priceData = await fetchStockPrice(stock.symbol, stock.market);
+              return { 
+                ...stock, 
+                price: priceData.price,
+                currency: priceData.currency,
+                value: priceData.price * stock.quantity 
+              };
             } catch (error) {
               console.error(`Greška pri ažuriranju cijene za ${stock.symbol}:`, error);
               return stock;
