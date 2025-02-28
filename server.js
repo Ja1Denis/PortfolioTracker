@@ -95,7 +95,10 @@ app.post('/api/stock-price', async (req, res) => {
     const { symbol, apiKey, provider = 'perplexity', market = 'ZSE' } = req.body;
     
     if (!apiKey) {
-      throw new Error('API ključ nije proslijeđen');
+      return res.status(400).json({
+        error: 'API ključ nije proslijeđen',
+        details: { provider }
+      });
     }
 
     console.log('Dohvaćanje cijene za dionicu:', symbol, 'na tržištu:', market, 'koristeći:', provider);
@@ -121,77 +124,98 @@ app.post('/api/stock-price', async (req, res) => {
     const prompt = getPromptForMarket(symbol, market);
     let response;
 
-    if (provider === 'perplexity') {
-      response = await axios.post('https://api.perplexity.ai/chat/completions', {
-        model: 'sonar',
-        messages: [{
-          role: 'user',
-          content: prompt
-        }]
-      }, {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
+    try {
+      if (provider === 'perplexity') {
+        response = await axios.post('https://api.perplexity.ai/chat/completions', {
+          model: 'sonar',
+          messages: [{
+            role: 'user',
+            content: prompt
+          }]
+        }, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-      if (response.data.choices && response.data.choices[0]) {
+        if (!response.data.choices?.[0]?.message?.content) {
+          throw new Error('Neispravan format odgovora od Perplexity API-ja');
+        }
+
         const priceText = response.data.choices[0].message.content.trim();
         const price = parseFloat(priceText);
         
-        if (!isNaN(price)) {
-          res.json({ 
-            price,
-            market,
-            currency: getCurrencyForMarket(market)
-          });
-        } else {
-          throw new Error('Nije moguće parsirati cijenu iz odgovora');
+        if (isNaN(price)) {
+          throw new Error('Nije moguće parsirati cijenu iz Perplexity odgovora');
         }
-      } else {
-        throw new Error('Neispravan format odgovora');
-      }
-    } else if (provider === 'gemini') {
-      response = await axios.post('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }]
-      }, {
-        params: {
-          key: apiKey
-        },
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
 
-      if (response.data.candidates && response.data.candidates[0]?.content?.parts?.[0]?.text) {
+        return res.json({ 
+          price,
+          market,
+          currency: getCurrencyForMarket(market)
+        });
+
+      } else if (provider === 'gemini') {
+        response = await axios.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        }, {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          params: {
+            key: apiKey
+          }
+        });
+
+        if (!response.data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          throw new Error('Neispravan format odgovora od Gemini API-ja');
+        }
+
         const priceText = response.data.candidates[0].content.parts[0].text.trim();
         const price = parseFloat(priceText);
         
-        if (!isNaN(price)) {
-          res.json({ 
-            price,
-            market,
-            currency: getCurrencyForMarket(market)
-          });
-        } else {
-          throw new Error('Nije moguće parsirati cijenu iz odgovora');
+        if (isNaN(price)) {
+          throw new Error('Nije moguće parsirati cijenu iz Gemini odgovora');
         }
+
+        return res.json({ 
+          price,
+          market,
+          currency: getCurrencyForMarket(market)
+        });
+
       } else {
-        throw new Error('Neispravan format odgovora');
+        throw new Error('Nepodržani API provider');
       }
-    } else {
-      throw new Error('Nepodržani API provider');
+    } catch (apiError) {
+      console.error('API greška:', {
+        provider,
+        error: apiError.message,
+        response: apiError.response?.data
+      });
+
+      return res.status(400).json({
+        error: `Greška pri dohvaćanju cijene s ${provider} API-jem`,
+        details: {
+          message: apiError.message,
+          provider,
+          symbol,
+          market
+        }
+      });
     }
   } catch (error) {
-    console.error('Greška:', error.message, error.response?.data);
-    res.status(500).json({
-      error: 'Greška pri dohvaćanju cijene',
-      message: error.message,
-      details: error.response?.data
+    console.error('Serverska greška:', error);
+    return res.status(500).json({
+      error: 'Interna greška servera',
+      details: {
+        message: error.message
+      }
     });
   }
 });
@@ -204,12 +228,12 @@ const getCurrencyForMarket = (market) => {
     case 'NYSE':
     case 'NASDAQ':
       return 'USD';
-    case 'FRA':
-      return 'EUR';
     case 'LSE':
       return 'GBP';
+    case 'FRA':
+      return 'EUR';
     default:
-      return 'Unknown';
+      return 'EUR';
   }
 };
 

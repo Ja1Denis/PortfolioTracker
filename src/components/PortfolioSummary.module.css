@@ -116,7 +116,7 @@
 }
 
 .stockRow:hover {
-  background-color: #f3f4f6;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .positive {

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './PortfolioSummary.module.css';
+import StockDetailsModal from './StockDetailsModal';
 
 const formatCurrency = (value, currency = 'EUR') => {
   return new Intl.NumberFormat('hr-HR', {
@@ -10,13 +11,27 @@ const formatCurrency = (value, currency = 'EUR') => {
   }).format(value);
 };
 
-const PortfolioSummary = ({ portfolio, totalValue, lastUpdate, nextUpdate, onRefresh, isLoading }) => {
+const PortfolioSummary = ({ 
+  portfolio, 
+  cash, 
+  totalValue, 
+  lastUpdate, 
+  nextUpdate, 
+  onRefresh, 
+  isLoading,
+  stocksHistory,
+  onRemoveStock,
+  onRemoveCash
+}) => {
+  const [selectedStock, setSelectedStock] = useState(null);
+
   // Grupiranje dionica po tržištu
   const stocksByMarket = portfolio.reduce((acc, stock) => {
-    if (!acc[stock.market]) {
-      acc[stock.market] = [];
+    const market = stock.market || 'ZSE';
+    if (!acc[market]) {
+      acc[market] = [];
     }
-    acc[stock.market].push(stock);
+    acc[market].push(stock);
     return acc;
   }, {});
 
@@ -24,12 +39,20 @@ const PortfolioSummary = ({ portfolio, totalValue, lastUpdate, nextUpdate, onRef
   const marketTotals = Object.entries(stocksByMarket).reduce((acc, [market, stocks]) => {
     acc[market] = stocks.reduce((total, stock) => {
       return {
-        value: total.value + stock.value,
-        currency: stock.currency
+        value: total.value + (stock.value || 0),
+        currency: stock.currency || 'EUR'
       };
-    }, { value: 0, currency: stocks[0].currency });
+    }, { value: 0, currency: stocks[0]?.currency || 'EUR' });
     return acc;
   }, {});
+
+  // Sortiranje tržišta po abecedi
+  const sortedMarkets = Object.keys(stocksByMarket).sort();
+
+  // Funkcija za otvaranje modala s detaljima
+  const handleStockClick = (stock) => {
+    setSelectedStock(stock);
+  };
 
   return (
     <div className={styles.container}>
@@ -44,7 +67,7 @@ const PortfolioSummary = ({ portfolio, totalValue, lastUpdate, nextUpdate, onRef
         </button>
       </div>
 
-      {Object.entries(stocksByMarket).map(([market, stocks]) => (
+      {sortedMarkets.map((market) => (
         <div key={market} className={styles.marketSection}>
           <h3>{market}</h3>
           <table className={styles.table}>
@@ -54,25 +77,72 @@ const PortfolioSummary = ({ portfolio, totalValue, lastUpdate, nextUpdate, onRef
                 <th>Količina</th>
                 <th>Cijena</th>
                 <th>Vrijednost</th>
+                <th>Akcije</th>
               </tr>
             </thead>
             <tbody>
-              {stocks.map(stock => (
-                <tr key={stock.symbol}>
+              {stocksByMarket[market].map(stock => (
+                <tr 
+                  key={`${market}-${stock.symbol}`}
+                  onClick={() => handleStockClick(stock)}
+                  className={styles.stockRow}
+                >
                   <td>{stock.symbol}</td>
                   <td>{stock.quantity}</td>
-                  <td>{formatCurrency(stock.price, stock.currency)}</td>
-                  <td>{formatCurrency(stock.value, stock.currency)}</td>
+                  <td>{formatCurrency(stock.price || 0, stock.currency || 'EUR')}</td>
+                  <td>{formatCurrency(stock.value || 0, stock.currency || 'EUR')}</td>
+                  <td>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveStock(stock);
+                      }}
+                      className={styles.removeButton}
+                    >
+                      Ukloni
+                    </button>
+                  </td>
                 </tr>
               ))}
               <tr className={styles.marketTotal}>
                 <td colSpan="3">Ukupno {market}</td>
-                <td>{formatCurrency(marketTotals[market].value, marketTotals[market].currency)}</td>
+                <td colSpan="2">{formatCurrency(marketTotals[market].value, marketTotals[market].currency)}</td>
               </tr>
             </tbody>
           </table>
         </div>
       ))}
+
+      {cash && cash.length > 0 && (
+        <div className={styles.marketSection}>
+          <h3>Gotovina</h3>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Valuta</th>
+                <th>Iznos</th>
+                <th>Akcije</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cash.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.currency}</td>
+                  <td>{formatCurrency(item.amount, item.currency)}</td>
+                  <td>
+                    <button
+                      onClick={() => onRemoveCash(index)}
+                      className={styles.removeButton}
+                    >
+                      Ukloni
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className={styles.totalValue}>
         <h3>Ukupna Vrijednost Portfelja</h3>
@@ -87,6 +157,14 @@ const PortfolioSummary = ({ portfolio, totalValue, lastUpdate, nextUpdate, onRef
           <p>Sljedeće osvježavanje: {new Date(nextUpdate).toLocaleString('hr-HR')}</p>
         )}
       </div>
+
+      {selectedStock && (
+        <StockDetailsModal
+          stock={selectedStock}
+          onClose={() => setSelectedStock(null)}
+          history={stocksHistory[selectedStock.symbol] || []}
+        />
+      )}
     </div>
   );
 };

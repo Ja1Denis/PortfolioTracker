@@ -1,17 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import StockSelector from './components/StockSelector';
-import PortfolioSummary from './components/PortfolioSummary';
 import AddNewStock from './components/AddNewStock';
+import PortfolioSummary from './components/PortfolioSummary';
 import PortfolioChart from './components/PortfolioChart';
 import PortfolioHistory from './components/PortfolioHistory';
 import ApiSettings from './components/ApiSettings';
+import AboutModal from './components/AboutModal';
+import AddCashForm from './components/AddCashForm';
 import { stockService } from './services/stockService';
 import styles from './App.module.css';
 
 const App = () => {
+  // Funkcija za spajanje dupliciranih dionica
+  const mergeDuplicateStocks = (stocks) => {
+    const stockMap = new Map();
+    
+    stocks.forEach(stock => {
+      const key = `${stock.symbol}-${stock.market}`;
+      if (stockMap.has(key)) {
+        const existingStock = stockMap.get(key);
+        existingStock.quantity += stock.quantity;
+        existingStock.value = existingStock.price * existingStock.quantity;
+      } else {
+        stockMap.set(key, { ...stock });
+      }
+    });
+
+    return Array.from(stockMap.values());
+  };
+
   const [portfolio, setPortfolio] = useState(() => {
     const savedPortfolio = localStorage.getItem('portfolio');
-    return savedPortfolio ? JSON.parse(savedPortfolio) : [];
+    if (savedPortfolio) {
+      // Očisti duplicirane dionice pri učitavanju
+      const loadedPortfolio = JSON.parse(savedPortfolio);
+      return mergeDuplicateStocks(loadedPortfolio);
+    }
+    return [];
   });
   
   // Nova struktura za povijest pojedinačnih dionica
@@ -23,6 +48,11 @@ const App = () => {
   const [portfolioHistory, setPortfolioHistory] = useState(() => {
     const savedHistory = localStorage.getItem('portfolioHistory');
     return savedHistory ? JSON.parse(savedHistory) : [];
+  });
+
+  const [cash, setCash] = useState(() => {
+    const savedCash = localStorage.getItem('cash');
+    return savedCash ? JSON.parse(savedCash) : [];
   });
 
   const [totalValue, setTotalValue] = useState(0);
@@ -38,6 +68,8 @@ const App = () => {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [nextUpdate, setNextUpdate] = useState(null);
   const [activeView, setActiveView] = useState('portfolio'); // 'portfolio' ili 'settings'
+  const [showAbout, setShowAbout] = useState(false);
+  const [showAddCash, setShowAddCash] = useState(false);
 
   // Backup mock cijene za slučaj da API ne radi
   const mockPrices = {
@@ -126,6 +158,10 @@ const App = () => {
     localStorage.setItem('portfolioHistory', JSON.stringify(portfolioHistory));
   }, [portfolioHistory]);
 
+  useEffect(() => {
+    localStorage.setItem('cash', JSON.stringify(cash));
+  }, [cash]);
+
   const addNewStock = (newStock) => {
     setAvailableStocks(prev => ({
       ...prev,
@@ -148,32 +184,47 @@ const App = () => {
     setIsLoading(true);
     try {
       const priceData = await fetchStockPrice(stock.symbol, stock.market);
-      const newStock = {
-        symbol: stock.symbol,
-        quantity: parseFloat(stock.quantity),
-        price: priceData.price,
-        market: stock.market,
-        currency: priceData.currency,
-        value: priceData.price * parseFloat(stock.quantity)
-      };
+      
+      // Provjeri postoji li već dionica u portfelju
+      const existingStockIndex = portfolio.findIndex(
+        s => s.symbol === stock.symbol && s.market === stock.market
+      );
 
-      setPortfolio(prevPortfolio => {
-        const updatedPortfolio = [...prevPortfolio, newStock];
+      if (existingStockIndex !== -1) {
+        // Ažuriraj postojeću dionicu
+        const updatedPortfolio = [...portfolio];
+        const existingStock = updatedPortfolio[existingStockIndex];
+        updatedPortfolio[existingStockIndex] = {
+          ...existingStock,
+          quantity: existingStock.quantity + parseFloat(stock.quantity),
+          price: priceData.price,
+          currency: priceData.currency,
+          value: priceData.price * (existingStock.quantity + parseFloat(stock.quantity))
+        };
+        setPortfolio(updatedPortfolio);
         calculateTotalValue(updatedPortfolio);
-        return updatedPortfolio;
-      });
+      } else {
+        // Dodaj novu dionicu
+        const newStock = {
+          symbol: stock.symbol,
+          quantity: parseFloat(stock.quantity),
+          price: priceData.price,
+          market: stock.market,
+          currency: priceData.currency,
+          value: priceData.price * parseFloat(stock.quantity)
+        };
+        const updatedPortfolio = [...portfolio, newStock];
+        setPortfolio(updatedPortfolio);
+        calculateTotalValue(updatedPortfolio);
+      }
 
       // Inicijalizacija povijesti za novu dionicu
       setStocksHistory(prevHistory => ({
         ...prevHistory,
-        [stock.symbol]: [
-          { x: new Date().toISOString(), y: priceData.price }
-        ]
+        [stock.symbol]: prevHistory[stock.symbol] || []
       }));
-
     } catch (error) {
       console.error('Greška pri dodavanju dionice:', error);
-      alert('Nije moguće dodati dionicu. Provjerite je li API ključ ispravno postavljen.');
     } finally {
       setIsLoading(false);
     }
@@ -189,14 +240,29 @@ const App = () => {
     return availableStocks[symbol] || symbol;
   };
 
-  const calculateTotalValue = (portfolioData) => {
-    const total = portfolioData.reduce((acc, stock) => acc + (stock.price * stock.quantity), 0);
-    setTotalValue(total);
+  const calculateTotalValue = (currentPortfolio) => {
+    const stocksValue = currentPortfolio.reduce((total, stock) => {
+      if (stock.currency === 'EUR') {
+        return total + stock.value;
+      }
+      // TODO: Dodati konverziju drugih valuta u EUR
+      return total + stock.value;
+    }, 0);
+
+    const cashValue = cash.reduce((total, item) => {
+      if (item.currency === 'EUR') {
+        return total + item.amount;
+      }
+      // TODO: Dodati konverziju drugih valuta u EUR
+      return total + item.amount;
+    }, 0);
+
+    setTotalValue(stocksValue + cashValue);
     
     // Dodaj novu točku u povijest
     const newHistoryPoint = {
       x: new Date().toISOString(),
-      y: total
+      y: stocksValue + cashValue
     };
     setPortfolioHistory(prev => [...prev, newHistoryPoint]);
   };
@@ -234,8 +300,67 @@ const App = () => {
     setIsLoading(false);
   };
 
+  const clearPortfolio = () => {
+    setPortfolio([]);
+    setStocksHistory({});
+    setCash([]);
+    localStorage.removeItem('portfolio');
+    localStorage.removeItem('stocksHistory');
+    localStorage.removeItem('cash');
+    calculateTotalValue([]);
+  };
+
+  const addCash = (cashItem) => {
+    const newCash = [...cash, cashItem];
+    setCash(newCash);
+    calculateTotalValue(portfolio);
+  };
+
+  const removeCash = (index) => {
+    const newCash = cash.filter((_, i) => i !== index);
+    setCash(newCash);
+    calculateTotalValue(portfolio);
+  };
+
   return (
     <div className={styles.container}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>Praćenje portfelja dionica</h1>
+        <p className={styles.subtitle}>Pratite svoje investicije na Zagrebačkoj burzi</p>
+        <div className={styles.headerButtons}>
+          <button 
+            className={`${styles.viewButton} ${activeView === 'portfolio' ? styles.active : ''}`}
+            onClick={() => setActiveView('portfolio')}
+          >
+            Portfelj
+          </button>
+          <button 
+            className={`${styles.viewButton} ${activeView === 'settings' ? styles.active : ''}`}
+            onClick={() => setActiveView('settings')}
+          >
+            Postavke
+          </button>
+          <button 
+            className={styles.viewButton}
+            onClick={() => setShowAbout(true)}
+          >
+            O Aplikaciji
+          </button>
+          <button 
+            className={`${styles.viewButton} ${styles.dangerButton}`}
+            onClick={clearPortfolio}
+          >
+            Očisti Portfelj
+          </button>
+          <button 
+            className={styles.viewButton}
+            onClick={() => setShowAddCash(true)}
+          >
+            Dodaj Gotovinu
+          </button>
+        </div>
+      </header>
+
       <nav className={styles.navigation}>
         <button 
           className={`${styles.navButton} ${activeView === 'portfolio' ? styles.active : ''}`}
@@ -252,37 +377,53 @@ const App = () => {
       </nav>
       
       {activeView === 'portfolio' ? (
-        <>
-          <div className={styles.header}>
-            <h1 className={styles.title}>Praćenje portfelja dionica</h1>
-            <p className={styles.subtitle}>Pratite svoje investicije na Zagrebačkoj burzi</p>
-          </div>
-          <div className={styles.controls}>
-            <AddNewStock onAddNewStock={addNewStock} />
-            <StockSelector onAddStock={addStockToPortfolio} availableStocks={availableStocks} />
-            <button onClick={refreshData}>Ručno osvježi podatke</button>
-          </div>
-          <div className={styles.dashboard}>
-            <div className={styles.summarySection}>
-              <PortfolioSummary 
-                portfolio={portfolio} 
-                totalValue={totalValue} 
-                onRemoveStock={removeStockFromPortfolio}
-                isLoading={isLoading}
-                lastUpdate={lastUpdate}
-                nextUpdate={nextUpdate}
-              />
+        <main className={styles.main}>
+          <div className={styles.content}>
+            <div className={styles.controls}>
+              <AddNewStock onAddNewStock={addNewStock} />
+              <StockSelector onAddStock={addStockToPortfolio} availableStocks={availableStocks} />
+              <button 
+                className={styles.viewButton} 
+                onClick={refreshData}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Osvježavanje...' : 'Ručno osvježi podatke'}
+              </button>
             </div>
-            <div className={styles.chartSection}>
-              <PortfolioChart portfolio={portfolio} isLoading={isLoading} />
+            <div className={styles.portfolioSection}>
+              <div className={styles.summarySection}>
+                <PortfolioSummary 
+                  portfolio={portfolio} 
+                  cash={cash}
+                  totalValue={totalValue} 
+                  lastUpdate={lastUpdate}
+                  nextUpdate={nextUpdate}
+                  onRefresh={refreshData}
+                  isLoading={isLoading}
+                  stocksHistory={stocksHistory}
+                  onRemoveStock={removeStockFromPortfolio}
+                  onRemoveCash={removeCash}
+                />
+              </div>
+              <div className={styles.chartSection}>
+                <PortfolioChart 
+                  portfolio={portfolio} 
+                  cash={cash}
+                  history={portfolioHistory}
+                />
+              </div>
             </div>
           </div>
-          <div className={styles.historySection}>
-            <PortfolioHistory historyData={portfolioHistory} />
-          </div>
-        </>
+        </main>
       ) : (
         <ApiSettings />
+      )}
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+      {showAddCash && (
+        <AddCashForm
+          onAdd={addCash}
+          onClose={() => setShowAddCash(false)}
+        />
       )}
     </div>
   );

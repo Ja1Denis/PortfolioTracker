@@ -19,10 +19,66 @@
 }
 
 .chartContainer {
-  flex: 1; /* Zauzima preostali prostor */
+  width: 100%;
+  background: white;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.totalValue {
+  text-align: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.totalValue h3 {
+  color: #374151;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.totalValue p {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #059669;
+  margin: 0;
+}
+
+.charts {
+  display: grid;
+  grid-template-rows: minmax(500px, auto) auto;
+  gap: 2rem;
+  padding: 1rem;
+  flex: 1;
+}
+
+.pieChart {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 8px;
+  height: 500px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.lineChart {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 8px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.noData {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem;
+  background: #f9fafb;
+  border-radius: 8px;
 }
 
 .emptyMessage {
@@ -46,5 +102,22 @@
   }
   50% {
     opacity: 0.5;
+  }
+}
+
+@media (max-width: 1024px) {
+  .charts {
+    grid-template-columns: 1fr;
+  }
+  
+  .pieChart,
+  .lineChart {
+    min-height: 250px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .pieChart {
+    height: 400px;
   }
 }
