@@ -6,9 +6,17 @@ Portfolio Tracker je moderna React aplikacija koja omogućuje korisnicima praće
 ## Ključne značajke
 - Odabir i dodavanje dionica iz predefiniranog popisa
 - Prikaz ukupne vrijednosti portfelja
-- Automatsko osvježavanje cijena dionica svakih 5 minuta
-- Detaljno logiranje i error handling
+- Automatsko osvježavanje cijena dionica svakih 2 sata
+- Ručno osvježavanje podataka
+- Detaljan prikaz pojedinačnih dionica kroz modal
+- Napredni grafički prikazi:
+  * Kombinirani stupčasti i linijski dijagrami
+  * Prilagođeni tooltipovi s formatiranim datumima
+  * Prikaz povijesti cijena za svaku dionicu
+- Praćenje vremena zadnjeg i sljedećeg osvježavanja
+- Integracija Gemini AI za analizu i preporuke ulaganja
 - Responzivni dizajn i moderan korisnički interfejs
+- Detaljno logiranje i error handling
 
 ## Kako pokrenuti aplikaciju
 1. Klonirajte repozitorij:
@@ -30,11 +38,13 @@ Portfolio Tracker je moderna React aplikacija koja omogućuje korisnicima praće
 
 ## Tehnologije
 - React
+- Chart.js
 - Express
 - Perplexity API
-- Recharts
+- Gemini API
 - Axios
 - CSS Modules
+- localStorage za pohranu povijesti cijena
 
 ## Autor
 Denis Sakač
