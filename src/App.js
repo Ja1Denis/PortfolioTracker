@@ -367,12 +367,20 @@ const App = () => {
             {showAbout ? 'Natrag na Portfolio' : 'O Aplikaciji'}
           </button>
           {!showAbout && (
-            <button
-              className={styles.addButton}
-              onClick={() => setShowAddCash(true)}
-            >
-              Dodaj Gotovinu
-            </button>
+            <>
+              <button
+                className={styles.addButton}
+                onClick={() => setShowAddCash(true)}
+              >
+                Dodaj Gotovinu
+              </button>
+              <button
+                className={styles.viewButton}
+                onClick={() => setActiveView(activeView === 'portfolio' ? 'settings' : 'portfolio')}
+              >
+                {activeView === 'portfolio' ? 'API Postavke' : 'Natrag na Portfolio'}
+              </button>
+            </>
           )}
         </div>
       </header>
@@ -380,6 +388,8 @@ const App = () => {
       <main className={styles.main}>
         {showAbout ? (
           <AboutPage />
+        ) : activeView === 'settings' ? (
+          <ApiSettings />
         ) : (
           <div className={styles.content}>
             <div className={styles.controls}>
